@@ -1,5 +1,5 @@
 <template>
-  <div id="main" :style="{width: '600px',height:'400px'}"></div>
+  <div id="main" :style="{width: '800px',height:'800px',margin:'auto'}"></div>
 </template>
 
 <script scoped>
@@ -13,61 +13,72 @@ export default {
   dochart(){
 	var myChart = echarts.init(document.getElementById('main'));
 	myChart.showLoading();
+	$.get('./src/les-miserables.gexf', function (xml) {
+		debugger;
+    myChart.hideLoading();
 
-		$.getJSON('./src/node.json', function (json) {
-		    myChart.hideLoading();
-		    debugger;
-		    var option = {
-		        title: {
-		            text: 'NPM Dependencies'
-		        },
-		        animationDurationUpdate: 1500,
-		        animationEasingUpdate: 'quinticInOut',
-		        series : [
-		            {
-		                type: 'graph',
-		                layout: 'none',
-		                // progressiveThreshold: 700,
-		                data: json.nodes.map(function (node) {
-		                    return {
-		                        x: node.x,
-		                        y: node.y,
-		                        id: node.id,
-		                        name: node.label,
-		                        symbolSize: node.size,
-		                        itemStyle: {
-		                            color: node.color
-		                        }
-		                    };
-		                }),
-		                edges: json.edges.map(function (edge) {
-		                    return {
-		                        source: edge.sourceID,
-		                        target: edge.targetID
-		                    };
-		                }),
+    var graph = echarts.dataTool.gexf.parse(xml);
+    var categories = [];
+    for (var i = 0; i < 4; i++) {
+        categories[i] = {
+            name: '类目' + i
+        };
+    }
+    graph.nodes.forEach(function (node) {
+        node.itemStyle = null;
+        node.value = node.symbolSize;
+        node.symbolSize /= 1.5;
+        node.label = {
+            normal: {
+                show: node.symbolSize > 10
+            }
+        };
+        node.category = node.attributes.modularity_class;
+    });
+    var option = {
+        title: {
+            text: 'Les Miserables',
+            subtext: 'Circular layout',
+            top: 'bottom',
+            left: 'right'
+        },
+        tooltip: {},
+        legend: [{
+            data: categories.map(function (a) {
+                return a.name;
+            })
+        }],
+        animationDurationUpdate: 1500,
+        animationEasingUpdate: 'quinticInOut',
+        series: [
+            {
+                name: 'Les Miserables',
+                type: 'graph',
+                layout: 'circular',
+                circular: {
+                    rotateLabel: true
+                },
+                data: graph.nodes,
+                links: graph.links,
+                categories: categories,
+                roam: true,
+                label: {
+                    position: 'right',
+                    formatter: '{b}'
+                },
+                lineStyle: {
+                    color: 'source',
+                    curveness: 0.3
+                }
+            }
+        ]
+    };
 
-		                emphasis: {
-		                    label: {
-		                        position: 'right',
-		                        show: true
-		                    }
-		                },
-		                roam: true,
-		                focusNodeAdjacency: true,
-		                lineStyle: {
-		                    width: 0.5,
-		                    curveness: 0.3,
-		                    opacity: 0.7
-		                }
-		            }
-		        ]
-		    }
-		    myChart.setOption(option, true);
-		});
+    myChart.setOption(option);
+}, 'xml');
 
   }
-  }
+}
 }
 </script>
 
